@@ -1,0 +1,38 @@
+# Controlled scenarios (docs/MEASUREMENT_PROTOCOL.md). Same machine, split, replay rate and
+# measurement windows for every configuration; only the label / background processes change.
+common:
+  prefix: bm
+  split: test
+  limit: 120000            # minutes of data per run (~83 days). null = whole test split
+  meters: 1
+  raw_partitions: 3
+  groups: [telegraf-base]  # add adaptive-processor when the adaptive layer is running
+  settle_s: 10
+  profile: {mode: rate, rate_rps: 500}
+
+scenarios:
+  - name: baseline_500            # base-paper rate; reference for A/B/C
+    label: base
+  - name: ramp_to_5000            # find where lag starts to grow
+    label: base
+    meters: 8
+    profile: {mode: ramp, ramp: {start_rps: 500, step_rps: 500, step_every_s: 30, max_rps: 5000}}
+  - name: partitions_1            # partition / parallelism study at a fixed offered load
+    raw_partitions: 1
+    meters: 8
+    profile: {mode: rate, rate_rps: 4000}
+  - name: partitions_3
+    raw_partitions: 3
+    meters: 8
+    profile: {mode: rate, rate_rps: 4000}
+  - name: partitions_6
+    raw_partitions: 6
+    meters: 8
+    profile: {mode: rate, rate_rps: 4000}
+  # Configuration C example: start the adaptive layer as background processes
+  # - name: adaptive_500
+  #   label: C_adaptive
+  #   groups: [telegraf-base, adaptive-processor]
+  #   background_cmds:
+  #     - "cap-hourly"
+  #     - "python -m your_team.selector --run-id ..."

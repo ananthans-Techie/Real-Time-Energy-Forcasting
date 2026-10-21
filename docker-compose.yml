@@ -1,0 +1,109 @@
+# Retained base pipeline (Im et al. 2024): Zookeeper+Kafka -> Telegraf -> InfluxDB -> Grafana.
+#
+#   docker compose --profile zk    up -d     # DEFAULT: Zookeeper-based Kafka (baseline fidelity)
+#   docker compose --profile kraft up -d     # optional: KRaft Kafka, no Zookeeper (see docs)
+#
+# Both Kafka variants answer to the hostname `kafka` inside the compose network:
+#   inside containers: kafka:19092      on the host: localhost:9092
+# Versions are pinned on purpose. NOTE: the `influxdb:latest` tag now points to InfluxDB 3,
+# which has no Flux and a different API -- this project needs InfluxDB 2.x.
+name: energy-pipeline
+
+services:
+  zookeeper:
+    profiles: ["zk"]
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka-zk:
+    profiles: ["zk"]
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on: [zookeeper]
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:19092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"        # partitions are an experimental variable
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      default:
+        aliases: [kafka]
+
+  kafka-kraft:
+    profiles: ["kraft"]
+    image: apache/kafka:3.8.0
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:19092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-kraft:9093
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      default:
+        aliases: [kafka]
+
+  influxdb:
+    image: influxdb:2.7
+    ports: ["8086:8086"]
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-change-me-please}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG:-capstone}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET:-energy}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-capstone-dev-token-change-me}
+      # Retention is left at the default (0 = infinite) ON PURPOSE: points carry their UCI
+      # event time (2006-2010). Any finite retention would silently discard the whole replay.
+    volumes: [influx-data:/var/lib/influxdb2]
+
+  telegraf:
+    image: telegraf:1.32
+    restart: unless-stopped            # keeps retrying until Kafka / InfluxDB are up
+    depends_on: [influxdb]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:19092
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: ${INFLUX_TOKEN:-capstone-dev-token-change-me}
+      INFLUX_ORG: ${INFLUX_ORG:-capstone}
+      INFLUX_BUCKET: ${INFLUX_BUCKET:-energy}
+      TELEGRAF_CONSUMER_GROUP: ${TELEGRAF_CONSUMER_GROUP:-telegraf-base}
+    volumes: ["./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro"]
+    # no container_name: `docker compose up -d --scale telegraf=3` = consumer-parallelism experiment
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    ports: ["3000:3000"]
+    depends_on: [influxdb]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/energy_readings.json
+      INFLUX_TOKEN: ${INFLUX_TOKEN:-capstone-dev-token-change-me}
+      INFLUX_ORG: ${INFLUX_ORG:-capstone}
+      INFLUX_BUCKET: ${INFLUX_BUCKET:-energy}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  influx-data:
+  grafana-data:

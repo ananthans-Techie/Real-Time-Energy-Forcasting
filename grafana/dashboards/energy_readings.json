@@ -1,0 +1,455 @@
+{
+ "uid": "energy-readings",
+ "title": "Energy - Readings (event time)",
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "tags": [
+  "capstone"
+ ],
+ "timezone": "utc",
+ "refresh": "",
+ "time": {
+  "from": "2010-01-01T00:00:00.000Z",
+  "to": "2010-02-01T00:00:00.000Z"
+ },
+ "templating": {
+  "list": [
+   {
+    "name": "run_id",
+    "label": "Run",
+    "type": "query",
+    "datasource": {
+     "type": "influxdb",
+     "uid": "influxdb-energy"
+    },
+    "query": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"energy\", tag: \"run_id\", predicate: (r) => r._measurement == \"energy_raw\", start: 2006-01-01T00:00:00Z)",
+    "refresh": 2,
+    "sort": 1,
+    "multi": false,
+    "includeAll": false,
+    "current": {}
+   },
+   {
+    "name": "meter_id",
+    "label": "Meter",
+    "type": "query",
+    "datasource": {
+     "type": "influxdb",
+     "uid": "influxdb-energy"
+    },
+    "query": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"energy\", tag: \"meter_id\", predicate: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\", start: 2006-01-01T00:00:00Z)",
+    "refresh": 2,
+    "sort": 1,
+    "multi": false,
+    "includeAll": false,
+    "current": {}
+   }
+  ]
+ },
+ "annotations": {
+  "list": []
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "text",
+   "title": "How to read this dashboard",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 24,
+    "h": 3
+   },
+   "options": {
+    "mode": "markdown",
+    "content": "X-axis is **event time** (the UCI timestamp), not wall-clock. Set the time range (top right) to the replayed period, e.g. `2010-01-01` to `2010-02-01`. Prediction, anomaly, drift and model-selection panels are added once the forecasting / detection owners publish their output schemas."
+   }
+  },
+  {
+   "id": 2,
+   "type": "timeseries",
+   "title": "Global active power (target, kW)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 3,
+    "w": 24,
+    "h": 9
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"target\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "kwatt",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 3,
+   "type": "timeseries",
+   "title": "Voltage (V)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 12,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"voltage\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "volt",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 4,
+   "type": "timeseries",
+   "title": "Global intensity (A)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 12,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"global_intensity\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "amp",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 5,
+   "type": "timeseries",
+   "title": "Global reactive power (kW)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 12,
+    "w": 8,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"global_reactive_power\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "kwatt",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 6,
+   "type": "timeseries",
+   "title": "Sub-metering (Wh per minute)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 19,
+    "w": 24,
+    "h": 7
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"sub_metering_1\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    },
+    {
+     "refId": "B",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"sub_metering_2\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    },
+    {
+     "refId": "C",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\")\n  |> filter(fn: (r) => r._field == \"sub_metering_3\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "drawStyle": "line",
+      "lineWidth": 1,
+      "fillOpacity": 8,
+      "showPoints": "never",
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi"
+    }
+   }
+  },
+  {
+   "id": 7,
+   "type": "stat",
+   "title": "Readings stored (range)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 26,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\" and r._field == \"seq\")\n  |> group()\n  |> count()"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 8,
+   "type": "stat",
+   "title": "Missing minutes (range)",
+   "description": "Minutes whose target reading was '?' in the source (kept as is_missing=true).",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 6,
+    "y": 26,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\" and r._field == \"is_missing\")\n  |> toInt()\n  |> group()\n  |> sum()"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  },
+  {
+   "id": 9,
+   "type": "stat",
+   "title": "Mean power (range, kW)",
+   "description": "",
+   "datasource": {
+    "type": "influxdb",
+    "uid": "influxdb-energy"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 26,
+    "w": 6,
+    "h": 4
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "datasource": {
+      "type": "influxdb",
+      "uid": "influxdb-energy"
+     },
+     "query": "from(bucket: \"energy\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_raw\" and r.run_id == \"${run_id}\" and r.meter_id == \"${meter_id}\" and r._field == \"target\")\n  |> group()\n  |> mean()"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "kwatt"
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "none"
+   }
+  }
+ ]
+}

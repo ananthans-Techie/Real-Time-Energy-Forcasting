@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "source": "UCI Individual Household Electric Power Consumption (Hebrail & Berard, 2012)",
+  "forecast_interval": "PT1H",
+  "forecast_horizon_steps": 1,
+  "seasonal_period": 24,
+  "timezone_note": "UCI wall-clock stamps are labelled UTC as-is (no DST adjustment).",
+  "split_cutoffs": {
+    "train_end_exclusive": "2009-10-01T00:00:00Z",
+    "val_end_exclusive": "2010-01-01T00:00:00Z"
+  },
+  "files": {
+    "uci_minute.parquet": {
+      "rows": 2075259,
+      "content_sha256": "c918e6e9b06439ef62a1898212af6d15ebce61096fbca8239fc4d2947b7ca179"
+    },
+    "uci_hourly.parquet": {
+      "rows": 34589,
+      "content_sha256": "6e194e999b28de75fd1891d60f80cf904151e8b5e7c30c195451558190a36f77"
+    }
+  },
+  "splits_hourly": {
+    "train": 24463,
+    "val": 2208,
+    "test": 7918
+  },
+  "splits_minute": {
+    "train": 1467756,
+    "val": 132480,
+    "test": 475023
+  }
+}

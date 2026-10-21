@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://capstone.local/schemas/pipeline_metric.v1.json",
+  "title": "energy.metrics event (pipeline/system metric)",
+  "description": "Wall-clock metric sample. metric_time_ms (NOT event time) is the point timestamp in InfluxDB.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "metric_time_ms",
+    "component",
+    "name",
+    "instance",
+    "value"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version. Consumers must reject unknown major versions."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$",
+      "description": "One id per experiment run; shared by every topic and every teammate's output."
+    },
+    "metric_time_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "component": {
+      "type": "string",
+      "enum": [
+        "producer",
+        "kafka",
+        "docker",
+        "probe",
+        "telegraf",
+        "influxdb",
+        "grafana",
+        "aggregator",
+        "forecaster",
+        "anomaly",
+        "drift",
+        "selector"
+      ],
+      "description": "Emitting component. Teammates add their own value via a schema minor bump."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(\\.[a-z0-9_]+)*$",
+      "description": "e.g. producer.rate_rps, kafka.consumer_lag, docker.cpu_percent, e2e.latency_ms"
+    },
+    "instance": {
+      "type": "string",
+      "description": "Sub-component: container, consumer group, model name, or 'all'."
+    },
+    "value": {
+      "type": "number"
+    }
+  }
+}

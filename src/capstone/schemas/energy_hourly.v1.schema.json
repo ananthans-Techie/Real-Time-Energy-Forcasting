@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://capstone.local/schemas/energy_hourly.v1.json",
+  "title": "energy.hourly event (forecast-interval aggregate)",
+  "description": "One closed 1-hour event-time window. event_time is the window START (left-labelled, window = [event_time, window_end)). Missing hours are filled by last-observation-carried-forward and flagged imputed=true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "event_id",
+    "meter_id",
+    "event_time",
+    "window_end",
+    "target",
+    "features",
+    "n_valid",
+    "n_expected",
+    "imputed",
+    "trigger_event_id",
+    "trigger_replay_time_ms",
+    "emit_time_ms"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version. Consumers must reject unknown major versions."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$",
+      "description": "One id per experiment run; shared by every topic and every teammate's output."
+    },
+    "meter_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Kafka message key. uci-001 is the real series; uci-002.. are load replicas."
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+-H\\d{8}T\\d{6}Z$",
+      "description": "<meter_id>-H<window start as YYYYMMDDTHHMMSSZ>"
+    },
+    "event_time": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:00:00Z$",
+      "description": "Window start, UTC."
+    },
+    "window_end": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:00:00Z$",
+      "description": "Window end (exclusive), UTC."
+    },
+    "target": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Mean global active power over valid minutes, kW (carried forward if imputed)."
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "global_reactive_power",
+        "voltage",
+        "global_intensity",
+        "sub_metering_1",
+        "sub_metering_2",
+        "sub_metering_3"
+      ],
+      "properties": {
+        "global_reactive_power": {
+          "type": "number"
+        },
+        "voltage": {
+          "type": "number"
+        },
+        "global_intensity": {
+          "type": "number"
+        },
+        "sub_metering_1": {
+          "type": "number"
+        },
+        "sub_metering_2": {
+          "type": "number"
+        },
+        "sub_metering_3": {
+          "type": "number"
+        }
+      },
+      "description": "Mean of each feature over valid minutes (sub_metering_* are mean Wh/min). Carried forward if unavailable."
+    },
+    "n_valid": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 60,
+      "description": "Minutes in the window with a valid target reading."
+    },
+    "n_expected": {
+      "type": "integer",
+      "const": 60
+    },
+    "imputed": {
+      "type": "boolean",
+      "description": "True iff n_valid == 0 (value carried forward from the previous hour)."
+    },
+    "trigger_event_id": {
+      "type": "string",
+      "description": "event_id of the raw event whose arrival closed this window."
+    },
+    "trigger_replay_time_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "replay_time_ms of the trigger event; downstream end-to-end latency = result-stored-time - this."
+    },
+    "emit_time_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock epoch ms when the processor emitted this record."
+    }
+  }
+}
