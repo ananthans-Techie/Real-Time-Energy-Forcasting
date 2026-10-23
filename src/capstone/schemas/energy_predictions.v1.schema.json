@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://capstone.local/schemas/energy_predictions.v1.json",
+  "title": "energy.predictions event (1-step-ahead hourly forecast)",
+  "description": "1-step-ahead forecast for the next hourly window. event_time is the predicted window start (UTC). trigger_event_id is the hourly event whose arrival triggered this forecast.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "event_id",
+    "meter_id",
+    "event_time",
+    "model",
+    "prediction",
+    "horizon_steps",
+    "inference_latency_ms",
+    "trigger_event_id",
+    "trigger_replay_time_ms",
+    "emit_time_ms"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$",
+      "description": "One id per experiment run, shared across all topics."
+    },
+    "meter_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Kafka message key. uci-001 is the real series; uci-002.. are load replicas."
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+-P\\d{8}T\\d{6}Z$",
+      "description": "<meter_id>-P<predicted window start as YYYYMMDDTHHMMSSZ>"
+    },
+    "event_time": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:00:00Z$",
+      "description": "Start of the predicted hour (UTC)."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model identifier used for this forecast (e.g. 'lstm', 'sarima')."
+    },
+    "prediction": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Forecasted Global_active_power in kW."
+    },
+    "horizon_steps": {
+      "type": "integer",
+      "const": 1,
+      "description": "Forecast horizon (1 step = PT1H)."
+    },
+    "inference_latency_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Inference execution latency in milliseconds."
+    },
+    "confidence_lower": {
+      "type": ["number", "null"],
+      "description": "Optional lower bound of confidence interval."
+    },
+    "confidence_upper": {
+      "type": ["number", "null"],
+      "description": "Optional upper bound of confidence interval."
+    },
+    "rolling_mae": {
+      "type": ["number", "null"],
+      "description": "Recent rolling MAE of this model at time of prediction."
+    },
+    "rolling_rmse": {
+      "type": ["number", "null"],
+      "description": "Recent rolling RMSE of this model at time of prediction."
+    },
+    "trigger_event_id": {
+      "type": "string",
+      "description": "event_id of the energy.hourly event that triggered this prediction."
+    },
+    "trigger_replay_time_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "replay_time_ms of the trigger event for end-to-end latency tracking."
+    },
+    "emit_time_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock epoch-ms when the forecaster emitted this record."
+    }
+  }
+}

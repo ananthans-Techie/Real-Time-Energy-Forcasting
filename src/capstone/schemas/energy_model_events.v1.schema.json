@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://capstone.local/schemas/energy_model_events.v1.json",
+  "title": "energy.model_events event (model selection / adaptation transitions)",
+  "description": "Published when dynamic model selection triggers a model switch, re-evaluation, or retrain.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "event_id",
+    "meter_id",
+    "event_time",
+    "event_type",
+    "previous_model",
+    "new_model",
+    "trigger_metric",
+    "emit_time_ms"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$",
+      "description": "One id per experiment run, shared across all topics."
+    },
+    "meter_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Kafka message key."
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+-ME\\d{8}T\\d{6}Z(-\\d+)?$",
+      "description": "<meter_id>-ME<event_time as YYYYMMDDTHHMMSSZ>[-<seq>]"
+    },
+    "event_time": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:00:00Z$",
+      "description": "Event-time at which the model decision took effect (UTC)."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["model_switch", "retrain", "selection_reeval", "fallback", "initial_selection"],
+      "description": "Nature of the model transition."
+    },
+    "previous_model": {
+      "type": ["string", "null"],
+      "description": "Model before transition, or null if initial selection."
+    },
+    "new_model": {
+      "type": "string",
+      "description": "Model selected for active forecasting."
+    },
+    "trigger_metric": {
+      "type": "string",
+      "description": "Identifier of the metric or signal causing the switch (e.g. 'utility_score', 'mae_threshold', 'latency_spike', 'drift_signal', 'scheduled')."
+    },
+    "trigger_value": {
+      "type": ["number", "string", "null"],
+      "description": "Value of the triggering metric at decision time."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Descriptive rationale for model switch."
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Snapshot of selection metrics (utility scores, MAE, latency, etc.).",
+      "additionalProperties": true
+    },
+    "trigger_event_id": {
+      "type": ["string", "null"],
+      "description": "Upstream event_id that prompted the evaluation, if applicable."
+    },
+    "trigger_replay_time_ms": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "replay_time_ms of the upstream trigger event, if applicable."
+    },
+    "emit_time_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Wall-clock epoch-ms when this event was emitted."
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-10-23T20:44:08Z",
+  "dataset": "data/processed/uci_hourly.parquet",
+  "benchmark_targets": {
+    "sarima": {
+      "mae": 0.3592,
+      "rmse": 0.5103,
+      "tolerance": 0.05
+    },
+    "lstm": {
+      "mae": 0.1084,
+      "rmse": 0.0825,
+      "tolerance": 0.05
+    }
+  },
+  "results": {
+    "sarima": {
+      "model": "sarima",
+      "order": [
+        2,
+        1,
+        1
+      ],
+      "seasonal_order": [
+        1,
+        0,
+        1,
+        24
+      ],
+      "fit_time_s": 117.72311019897461,
+      "total_eval_time_s": 121.19859385490417,
+      "metrics": {
+        "all_hours_mae": 0.36395718520405795,
+        "all_hours_rmse": 0.5084286265214812,
+        "headline_mae": 0.36753755365549545,
+        "headline_rmse": 0.5134319221944046
+      },
+      "aic": 6790.694862628821,
+      "artifact_path": "models/sarima_model.pkl"
+    },
+    "lstm": {
+      "model": "lstm",
+      "epochs": 15,
+      "training_time_s": 61.67735409736633,
+      "metrics_unscaled": {
+        "all_hours_mae": 0.333441058049082,
+        "all_hours_rmse": 0.5114808298100975,
+        "headline_mae": 0.3391336304697015,
+        "headline_rmse": 0.5165758529681898
+      },
+      "metrics_scaled": {
+        "all_hours_mae": 0.051804449409246445,
+        "all_hours_rmse": 0.07946527004241943,
+        "headline_mae": 0.05268886312842369,
+        "headline_rmse": 0.08025684952735901
+      },
+      "artifact_path": "models/lstm_model.pt"
+    },
+    "lightweight": {
+      "model": "lightweight",
+      "training_time_s": 0.15069198608398438,
+      "metrics": {
+        "all_hours_mae": 0.3820758327253354,
+        "all_hours_rmse": 0.5378821984823446,
+        "headline_mae": 0.39020875928300863,
+        "headline_rmse": 0.5462752046747466
+      },
+      "artifact_path": "models/lightweight_model.pkl"
+    }
+  },
+  "verification": {
+    "sarima_mae_matches": true,
+    "sarima_rmse_matches": true,
+    "lstm_scaled_mae_matches": true,
+    "lstm_scaled_rmse_matches": true
+  }
+}
