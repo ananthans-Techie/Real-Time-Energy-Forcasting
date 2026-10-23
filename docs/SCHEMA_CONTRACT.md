@@ -128,7 +128,7 @@ Also frozen: forecasts are joined to actuals on `(run_id, meter_id, event_time)`
 Any change to §1–§8 = new `SCHEMA_VERSION` (patch: clarification; minor: additive optional field; major: anything else), a changelog line here, and a message to both other owners. Additive fields need no consumer changes; consumers must ignore nothing silently — `additionalProperties:false` is deliberate, so unknown fields fail validation in tests rather than in the demo.
 
 - [x] Ananthan S — data / platform / integration
-- [ ] Aleena Antony — forecasting / selection
+- [x] Aleena Antony — forecasting / selection
 - [ ] Angel Treesa John — anomaly / drift
 
 ### Decisions I need a yes/no on before freezing

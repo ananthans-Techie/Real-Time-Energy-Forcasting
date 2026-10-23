@@ -1,0 +1,16 @@
+{
+  "window_size": 24,
+  "hidden_dim": 64,
+  "num_layers": 2,
+  "lr": 0.001,
+  "feature_cols": [
+    "target",
+    "global_reactive_power",
+    "voltage",
+    "global_intensity",
+    "sub_metering_1",
+    "sub_metering_2",
+    "sub_metering_3"
+  ],
+  "training_time_s": 61.67735409736633
+}

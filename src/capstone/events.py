@@ -14,6 +14,10 @@ _KIND_TO_FILE = {
     "raw": "energy_raw.v1.schema.json",
     "hourly": "energy_hourly.v1.schema.json",
     "metric": "pipeline_metric.v1.schema.json",
+    "prediction": "energy_predictions.v1.schema.json",
+    "predictions": "energy_predictions.v1.schema.json",
+    "model_event": "energy_model_events.v1.schema.json",
+    "model_events": "energy_model_events.v1.schema.json",
 }
 
 
@@ -50,6 +54,15 @@ def hourly_event_id(meter_id: str, window_start_iso: str) -> str:
     return f"{meter_id}-H{compact(window_start_iso)}"
 
 
+def prediction_event_id(meter_id: str, pred_event_time_iso: str) -> str:
+    return f"{meter_id}-P{compact(pred_event_time_iso)}"
+
+
+def model_event_id(meter_id: str, event_time_iso: str, seq: int | None = None) -> str:
+    suffix = f"-{seq}" if seq is not None else ""
+    return f"{meter_id}-ME{compact(event_time_iso)}{suffix}"
+
+
 def now_ms() -> int:
     return int(time.time() * 1000)
 
@@ -72,6 +85,89 @@ def build_raw_event(run_id: str, meter_id: str, event_time_iso: str, seq: int,
     if target is not None:
         ev["target"] = float(target)
         ev["features"] = {k: float(v) for k, v in (features or {}).items() if v is not None}
+    return ev
+
+
+def build_prediction_event(
+    run_id: str,
+    meter_id: str,
+    event_time_iso: str,
+    model: str,
+    prediction: float,
+    trigger_event_id: str,
+    trigger_replay_time_ms: int,
+    inference_latency_ms: float = 0.0,
+    confidence_lower: float | None = None,
+    confidence_upper: float | None = None,
+    rolling_mae: float | None = None,
+    rolling_rmse: float | None = None,
+    emit_time_ms: int | None = None,
+) -> dict[str, Any]:
+    """Build an energy.predictions event (1-step-ahead forecast for hour event_time_iso)."""
+    ev: dict[str, Any] = {
+        "schema_version": C.SCHEMA_VERSION,
+        "run_id": run_id,
+        "event_id": prediction_event_id(meter_id, event_time_iso),
+        "meter_id": meter_id,
+        "event_time": event_time_iso,
+        "model": str(model),
+        "prediction": max(0.0, float(prediction)),
+        "horizon_steps": C.FORECAST_HORIZON_STEPS,
+        "inference_latency_ms": max(0.0, float(inference_latency_ms)),
+        "trigger_event_id": trigger_event_id,
+        "trigger_replay_time_ms": int(trigger_replay_time_ms),
+        "emit_time_ms": emit_time_ms if emit_time_ms is not None else now_ms(),
+    }
+    if confidence_lower is not None:
+        ev["confidence_lower"] = float(confidence_lower)
+    if confidence_upper is not None:
+        ev["confidence_upper"] = float(confidence_upper)
+    if rolling_mae is not None:
+        ev["rolling_mae"] = float(rolling_mae)
+    if rolling_rmse is not None:
+        ev["rolling_rmse"] = float(rolling_rmse)
+    return ev
+
+
+def build_model_event(
+    run_id: str,
+    meter_id: str,
+    event_time_iso: str,
+    event_type: str,
+    new_model: str,
+    trigger_metric: str,
+    previous_model: str | None = None,
+    trigger_value: float | str | None = None,
+    reason: str | None = None,
+    metrics: dict[str, Any] | None = None,
+    trigger_event_id: str | None = None,
+    trigger_replay_time_ms: int | None = None,
+    emit_time_ms: int | None = None,
+    seq: int | None = None,
+) -> dict[str, Any]:
+    """Build an energy.model_events event."""
+    ev: dict[str, Any] = {
+        "schema_version": C.SCHEMA_VERSION,
+        "run_id": run_id,
+        "event_id": model_event_id(meter_id, event_time_iso, seq),
+        "meter_id": meter_id,
+        "event_time": event_time_iso,
+        "event_type": str(event_type),
+        "previous_model": str(previous_model) if previous_model is not None else None,
+        "new_model": str(new_model),
+        "trigger_metric": str(trigger_metric),
+        "emit_time_ms": emit_time_ms if emit_time_ms is not None else now_ms(),
+    }
+    if trigger_value is not None:
+        ev["trigger_value"] = float(trigger_value) if isinstance(trigger_value, (int, float)) else str(trigger_value)
+    if reason:
+        ev["reason"] = str(reason)
+    if metrics:
+        ev["metrics"] = dict(metrics)
+    if trigger_event_id:
+        ev["trigger_event_id"] = str(trigger_event_id)
+    if trigger_replay_time_ms is not None:
+        ev["trigger_replay_time_ms"] = int(trigger_replay_time_ms)
     return ev
 
 

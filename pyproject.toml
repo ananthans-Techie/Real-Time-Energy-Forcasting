@@ -30,6 +30,8 @@ cap-monitor   = "capstone.monitor:main"
 cap-probe     = "capstone.latency_probe:main"
 cap-archive   = "capstone.archive:main"
 cap-benchmark = "capstone.benchmark:main"
+cap-train     = "capstone.forecasting.train:main"
+cap-forecast  = "capstone.forecasting.forecaster:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
