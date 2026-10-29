@@ -32,6 +32,9 @@ cap-archive   = "capstone.archive:main"
 cap-benchmark = "capstone.benchmark:main"
 cap-train     = "capstone.forecasting.train:main"
 cap-forecast  = "capstone.forecasting.forecaster:main"
+cap-anomaly   = "cap_anomaly.anomaly_detector:main"
+cap-drift     = "cap_drift.drift_monitor:main"
+cap-inject    = "cap_anomaly.synthetic_injector:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

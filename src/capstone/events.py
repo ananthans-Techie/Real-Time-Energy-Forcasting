@@ -18,6 +18,9 @@ _KIND_TO_FILE = {
     "predictions": "energy_predictions.v1.schema.json",
     "model_event": "energy_model_events.v1.schema.json",
     "model_events": "energy_model_events.v1.schema.json",
+    "anomaly": "energy_anomalies.v1.schema.json",
+    "anomalies": "energy_anomalies.v1.schema.json",
+    "drift": "energy_drift.v1.schema.json",
 }
 
 
@@ -61,6 +64,14 @@ def prediction_event_id(meter_id: str, pred_event_time_iso: str) -> str:
 def model_event_id(meter_id: str, event_time_iso: str, seq: int | None = None) -> str:
     suffix = f"-{seq}" if seq is not None else ""
     return f"{meter_id}-ME{compact(event_time_iso)}{suffix}"
+
+
+def anomaly_event_id(meter_id: str, event_time_iso: str) -> str:
+    return f"{meter_id}-A{compact(event_time_iso)}"
+
+
+def drift_event_id(meter_id: str, event_time_iso: str) -> str:
+    return f"{meter_id}-D{compact(event_time_iso)}"
 
 
 def now_ms() -> int:
@@ -168,6 +179,84 @@ def build_model_event(
         ev["trigger_event_id"] = str(trigger_event_id)
     if trigger_replay_time_ms is not None:
         ev["trigger_replay_time_ms"] = int(trigger_replay_time_ms)
+    return ev
+
+
+def build_anomaly_event(
+    run_id: str,
+    meter_id: str,
+    event_time_iso: str,
+    target_value: float | None,
+    expected_value: float | None,
+    anomaly_score: float,
+    is_anomaly: bool,
+    trigger_event_id: str,
+    trigger_replay_time_ms: int,
+    anomaly_type: str = "normal",
+    threshold: float | None = None,
+    window_size: int | None = None,
+    emit_time_ms: int | None = None,
+) -> dict[str, Any]:
+    """Build an energy.anomalies event."""
+    ev: dict[str, Any] = {
+        "schema_version": C.SCHEMA_VERSION,
+        "run_id": run_id,
+        "event_id": anomaly_event_id(meter_id, event_time_iso),
+        "meter_id": meter_id,
+        "event_time": event_time_iso,
+        "target_value": float(target_value) if target_value is not None else None,
+        "expected_value": float(expected_value) if expected_value is not None else None,
+        "anomaly_score": max(0.0, float(anomaly_score)),
+        "is_anomaly": bool(is_anomaly),
+        "trigger_event_id": str(trigger_event_id),
+        "trigger_replay_time_ms": int(trigger_replay_time_ms),
+        "emit_time_ms": emit_time_ms if emit_time_ms is not None else now_ms(),
+    }
+    if anomaly_type:
+        ev["anomaly_type"] = str(anomaly_type)
+    if threshold is not None:
+        ev["threshold"] = max(0.0, float(threshold))
+    if window_size is not None:
+        ev["window_size"] = int(window_size)
+    return ev
+
+
+def build_drift_event(
+    run_id: str,
+    meter_id: str,
+    event_time_iso: str,
+    drift_detected: bool,
+    drift_score: float,
+    mean_error_before: float,
+    mean_error_after: float,
+    trigger_event_id: str,
+    trigger_replay_time_ms: int,
+    drift_method: str = "adwin",
+    p_value: float | None = None,
+    window_size: int | None = None,
+    emit_time_ms: int | None = None,
+) -> dict[str, Any]:
+    """Build an energy.drift event."""
+    ev: dict[str, Any] = {
+        "schema_version": C.SCHEMA_VERSION,
+        "run_id": run_id,
+        "event_id": drift_event_id(meter_id, event_time_iso),
+        "meter_id": meter_id,
+        "event_time": event_time_iso,
+        "drift_detected": bool(drift_detected),
+        "drift_score": max(0.0, float(drift_score)),
+        "mean_error_before": max(0.0, float(mean_error_before)),
+        "mean_error_after": max(0.0, float(mean_error_after)),
+        "trigger_event_id": str(trigger_event_id),
+        "trigger_replay_time_ms": int(trigger_replay_time_ms),
+        "emit_time_ms": emit_time_ms if emit_time_ms is not None else now_ms(),
+    }
+    if drift_method:
+        ev["drift_method"] = str(drift_method)
+    if p_value is not None:
+        ev["p_value"] = float(p_value)
+    if window_size is not None:
+        ev["window_size"] = int(window_size)
     return ev
 
 
