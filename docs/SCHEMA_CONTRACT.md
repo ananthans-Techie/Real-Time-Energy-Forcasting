@@ -129,7 +129,7 @@ Any change to §1–§8 = new `SCHEMA_VERSION` (patch: clarification; minor: add
 
 - [x] Ananthan S — data / platform / integration
 - [x] Aleena Antony — forecasting / selection
-- [ ] Angel Treesa John — anomaly / drift
+- [x] Angel Treesa John — anomaly / drift
 
 ### Decisions I need a yes/no on before freezing
 
