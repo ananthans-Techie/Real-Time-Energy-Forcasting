@@ -91,6 +91,31 @@ Payload fields are owned by Aleena (predictions, model_events) and Angel (anomal
 
 Also frozen: forecasts are joined to actuals on `(run_id, meter_id, event_time)`; anomaly flags describe **one observation**, drift describes **sustained change** and is never inferred from a single anomaly (architecture runtime rule); every component emits its latency/CPU/memory as `energy.metrics` events (`pipeline_metric.v1`) with its own `component` value.
 
+### 4.1 `energy.anomalies` — anomaly detection output (schema `energy_anomalies.v1`)
+Published by `cap-anomaly` (`AnomalyDetector`):
+
+```json
+{"schema_version":"1.0.0","run_id":"C_adaptive-r1","event_id":"uci-001-A20100101T010000Z",
+ "meter_id":"uci-001","event_time":"2010-01-01T01:00:00Z",
+ "target_value":4.82,"expected_value":0.95,"anomaly_score":4.21,"is_anomaly":true,
+ "anomaly_type":"spike","threshold":3.5,"window_size":24,
+ "trigger_event_id":"uci-001-H20100101T010000Z","trigger_replay_time_ms":1792522905110,
+ "emit_time_ms":1792522905120}
+```
+
+### 4.2 `energy.drift` — concept drift monitoring output (schema `energy_drift.v1`)
+Published by `cap-drift` (`DriftMonitor`):
+
+```json
+{"schema_version":"1.0.0","run_id":"C_adaptive-r1","event_id":"uci-001-D20100105T120000Z",
+ "meter_id":"uci-001","event_time":"2010-01-05T12:00:00Z",
+ "drift_detected":true,"drift_score":1.42,
+ "mean_error_before":0.18,"mean_error_after":0.68,
+ "drift_method":"adwin","p_value":0.001,"window_size":48,
+ "trigger_event_id":"uci-001-H20100105T120000Z","trigger_replay_time_ms":1792523000000,
+ "emit_time_ms":1792523000015}
+```
+
 ## 5. Identifiers, topics, groups
 
 | Item | Value |
@@ -129,7 +154,7 @@ Any change to §1–§8 = new `SCHEMA_VERSION` (patch: clarification; minor: add
 
 - [x] Ananthan S — data / platform / integration
 - [x] Aleena Antony — forecasting / selection
-- [ ] Angel Treesa John — anomaly / drift
+- [x] Angel Treesa John — anomaly / drift
 
 ### Decisions I need a yes/no on before freezing
 
@@ -143,3 +168,4 @@ Any change to §1–§8 = new `SCHEMA_VERSION` (patch: clarification; minor: add
 
 ### Changelog
 - 1.0.0 — initial proposal.
+- 1.0.1 — Workstream 3 schemas published (`energy.anomalies`, `energy.drift`) and sign-off completed by Angel Treesa John.

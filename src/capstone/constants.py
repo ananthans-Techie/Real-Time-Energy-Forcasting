@@ -79,3 +79,7 @@ GROUP_ADAPTIVE = "adaptive-processor"   # adaptive analytics layer
 # --------------------------------------------------------------- influxdb
 MEASUREMENT_RAW = "energy_raw"
 MEASUREMENT_METRIC = "pipeline_metric"
+MEASUREMENT_ANOMALIES = "energy_anomalies"
+MEASUREMENT_DRIFT = "energy_drift"
+MEASUREMENT_PREDICTIONS = "energy_predictions"
+MEASUREMENT_MODEL_EVENTS = "energy_model_events"
