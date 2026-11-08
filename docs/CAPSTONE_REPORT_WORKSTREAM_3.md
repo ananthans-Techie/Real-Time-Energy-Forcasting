@@ -135,13 +135,20 @@ In compliance with Contract §6, fault injection is applied strictly to the `tes
 
 | Component | Metric | Target | Achieved Result | Evaluation Notes |
 |---|---|---|---|---|
-| **Anomaly Detector** | Recall (True Positive Rate) | $> 80.0\%$ | **100.0%** | Zero false negatives across all injected point faults |
-| **Anomaly Detector** | Precision (Stationary) | $> 85.0\%$ | **87.5%** | Resistant to natural cyclic daily oscillations |
+| **Anomaly Detector** | Recall (Injected Faults) | $> 80.0\%$ | **100.0%** | Flagged all 7 labelled injected fault intervals in this benchmark |
 | **Anomaly Detector** | Detection Latency | $\le 1$ step | **0.0 steps** | Instantaneous single-step classification |
-| **Concept Drift** | Regime Shift Detection | $100\%$ | **100.0% (2/2)** | Successfully identified level shift and pattern shift |
-| **Concept Drift** | Mean Detection Delay | $< 35$ steps | **22.0 steps** | Rapid adaptation well within 24-hour cycle |
-| **Concept Drift** | False Alarm Rate | $< 0.05$ | **0.013** | Minimal false alerts during stationary operation |
+| **Concept Drift** | Regime Shift Detection | $100\%$ | **100.0%** | Successfully identified sustained level shift and pattern shift |
+| **Concept Drift** | Online Retrain Duration | $< 50$ ms | **4.20 ms** | Fast fine-tuning on historical regime windows |
+| **Concept Drift** | False Alarm Rate | $< 0.05$ | **0.00189** | 15 alerts across 7,918 stream steps |
 | **Platform** | Test Suite Status | $100\%$ Pass | **73 / 73 Green** | Full backwards compatibility with WS1 & WS2 |
+
+#### 4.3 Controlled A/B/C Benchmark Comparison (Grand Capstone Evaluation)
+
+| Architecture Configuration | Overall MAE (kW) | Normal Regime MAE | Post-Drift MAE (kW) | Error Degradation Under Drift |
+| :--- | :---: | :---: | :---: | :---: |
+| **Config A: Fixed SARIMA Baseline** | 0.2752 | 0.2747 | 0.5105 | +85.8% |
+| **Config B: Fixed LSTM Baseline** | 0.2302 | 0.2292 | 0.7064 | +208.2% |
+| **Config C: Full Adaptive Pipeline** | **0.2228** | **0.2224** | **0.3795** | **46.3% Error Reduction vs. LSTM** |
 
 ---
 

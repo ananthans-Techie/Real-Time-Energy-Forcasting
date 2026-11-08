@@ -44,8 +44,9 @@ def ensure_topics(bootstrap: str, raw_partitions: int, other_partitions: int,
         existing -= set(gone)
     todo = [NewTopic(t, num_partitions=raw_partitions if t == C.TOPIC_RAW else other_partitions,
                      replication_factor=1) for t in topics if t not in existing]
-    for t, f in admin.create_topics(todo).items():
-        f.result()
+    if todo:
+        for t, f in admin.create_topics(todo).items():
+            f.result()
     md = admin.list_topics(timeout=10).topics
     return {t: len(md[t].partitions) for t in topics if t in md}
 

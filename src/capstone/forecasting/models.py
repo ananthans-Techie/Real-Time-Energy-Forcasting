@@ -176,6 +176,7 @@ class SARIMAForecaster(BaseForecaster):
         try:
             # Filter recent observations through model without refitting parameters
             applied = self.fitted_res.apply(recent, refit=False)
+            forecast_res = applied.get_forecast(steps=1)
             pm = forecast_res.predicted_mean
             pred = float(np.asarray(pm)[0])
             ci = np.asarray(forecast_res.conf_int(alpha=0.05))

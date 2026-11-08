@@ -29,10 +29,26 @@ scenarios:
     raw_partitions: 6
     meters: 8
     profile: {mode: rate, rate_rps: 4000}
-  # Configuration C example: start the adaptive layer as background processes
-  # - name: adaptive_500
-  #   label: C_adaptive
-  #   groups: [telegraf-base, adaptive-processor]
-  #   background_cmds:
-  #     - "cap-hourly"
-  #     - "python -m your_team.selector --run-id ..."
+  # -------------------------------------------------------------------------
+  # Grand Capstone Controlled A/B/C Benchmarks (Im et al. 2024 Modernization)
+  # -------------------------------------------------------------------------
+  - name: config_A_fixed_sarima
+    label: A_sarima
+    groups: [telegraf-base, telegraf-predictions]
+    background_cmds:
+      - "python -m capstone.aggregator --bootstrap 127.0.0.1:9092"
+      - "python -m capstone.forecasting.forecaster --bootstrap 127.0.0.1:9092 --fixed-model sarima --no-drift"
+  - name: config_B_fixed_lstm
+    label: B_lstm
+    groups: [telegraf-base, telegraf-predictions]
+    background_cmds:
+      - "python -m capstone.aggregator --bootstrap 127.0.0.1:9092"
+      - "python -m capstone.forecasting.forecaster --bootstrap 127.0.0.1:9092 --fixed-model lstm --no-drift"
+  - name: config_C_full_adaptive
+    label: C_adaptive
+    groups: [telegraf-base, telegraf-predictions, telegraf-anomalies, telegraf-drift, telegraf-model-events]
+    background_cmds:
+      - "python -m capstone.aggregator --bootstrap 127.0.0.1:9092"
+      - "python -m capstone.forecasting.forecaster --bootstrap 127.0.0.1:9092 --default-model lstm"
+      - "python -m cap_anomaly.anomaly_detector --bootstrap 127.0.0.1:9092"
+      - "python -m cap_drift.drift_monitor --bootstrap 127.0.0.1:9092"

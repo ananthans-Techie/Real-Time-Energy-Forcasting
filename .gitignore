@@ -11,3 +11,4 @@ data/archive/*
 runs/*
 !runs/.gitkeep
 .venv
+.matplotlib_cache/

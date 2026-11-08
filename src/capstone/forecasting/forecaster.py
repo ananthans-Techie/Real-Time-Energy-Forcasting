@@ -43,6 +43,8 @@ class StreamingForecaster:
 
         # Context buffers: meter_id -> list of hourly record dicts
         self.buffers: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        # Pending drift signals per meter: meter_id -> bool
+        self.pending_drift: dict[str, bool] = defaultdict(bool)
         # Processed event tracker for at-least-once deduplication: set of event_id
         self.seen_events: set[str] = set()
         # Last observed inference latencies
@@ -60,6 +62,8 @@ class StreamingForecaster:
         cls,
         models_dir: Path | str = "models",
         default_model: str = "lstm",
+        candidate_models: list[str] | None = None,
+        fixed_model: str | None = None,
         device: str | None = None,
     ) -> StreamingForecaster:
         """Load pretrained models from directory or train quick fallback models."""
@@ -99,9 +103,16 @@ class StreamingForecaster:
         if "lightweight" not in models:
             models["lightweight"] = LightweightForecaster()
 
+        if fixed_model:
+            active = fixed_model
+            cands = [fixed_model]
+        else:
+            active = default_model
+            cands = candidate_models or list(models.keys())
+
         selector = DynamicModelSelector(
-            candidate_models=list(models.keys()),
-            default_model=default_model,
+            candidate_models=cands,
+            default_model=active,
         )
         return cls(models=models, selector=selector)
 
@@ -138,7 +149,7 @@ class StreamingForecaster:
         self.seen_events.add(trigger_event_id)
 
         # 1. Record actual ground-truth in all candidate trackers to measure accuracy
-        for model_name in self.models:
+        for model_name in self.selector.trackers:
             self.selector.trackers[model_name].record_actual(event_time, actual_target)
 
         # 2. Append to rolling historical buffer for this meter
@@ -215,6 +226,7 @@ class StreamingForecaster:
         bootstrap: str,
         group_id: str = C.GROUP_ADAPTIVE,
         input_topic: str = C.TOPIC_HOURLY,
+        drift_topic: str | None = C.TOPIC_DRIFT,
         predictions_topic: str = C.TOPIC_PREDICTIONS,
         model_events_topic: str = C.TOPIC_MODEL_EVENTS,
         limit: int | None = None,
@@ -236,8 +248,11 @@ class StreamingForecaster:
 
         consumer = Consumer(conf_c)
         producer = Producer(conf_p)
-        consumer.subscribe([input_topic])
-        logger.info(f"Subscribed to {input_topic} with group {group_id} -> producing to {predictions_topic}")
+        topics = [input_topic]
+        if drift_topic:
+            topics.append(drift_topic)
+        consumer.subscribe(topics)
+        logger.info(f"Subscribed to {topics} with group {group_id} -> producing to {predictions_topic}")
 
         running = True
 
@@ -260,8 +275,23 @@ class StreamingForecaster:
                     continue
 
                 try:
+                    topic = msg.topic()
                     payload = json.loads(msg.value().decode("utf-8"))
-                    pred_ev, model_ev = self.process_hourly_event(payload)
+
+                    # Handle incoming concept drift signals
+                    if drift_topic and topic == drift_topic:
+                        if payload.get("drift_detected"):
+                            m_id = payload.get("meter_id", C.PRIMARY_METER_ID)
+                            self.pending_drift[m_id] = True
+                            logger.warning(
+                                f"Forecaster received confirmed drift signal for meter {m_id} at {payload.get('event_time')}"
+                            )
+                        continue
+
+                    # Handle hourly forecast triggers
+                    m_id = payload.get("meter_id", C.PRIMARY_METER_ID)
+                    has_drift = self.pending_drift.pop(m_id, False)
+                    pred_ev, model_ev = self.process_hourly_event(payload, drift_signal=has_drift)
 
                     # Produce prediction
                     key = pred_ev["meter_id"].encode("utf-8")
@@ -295,18 +325,26 @@ def main(argv=None) -> int:
     parser.add_argument("--models-dir", default="models", help="Directory with trained model artifacts")
     parser.add_argument("--group", default=C.GROUP_ADAPTIVE)
     parser.add_argument("--default-model", default="lstm")
+    parser.add_argument("--fixed-model", default=None, choices=["sarima", "lstm", "lightweight"], help="Lock to fixed model (for Config A / B)")
+    parser.add_argument("--candidate-models", nargs="+", default=None, help="Candidate models for selection")
+    parser.add_argument("--drift-topic", default=C.TOPIC_DRIFT, help="Drift events topic")
+    parser.add_argument("--no-drift", action="store_true", help="Disable drift topic subscription")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--device", default=None, help="Device ('cpu' or 'cuda')")
     args = parser.parse_args(argv)
 
+    drift_top = None if args.no_drift else args.drift_topic
     forecaster = StreamingForecaster.from_directory(
         models_dir=args.models_dir,
         default_model=args.default_model,
+        candidate_models=args.candidate_models,
+        fixed_model=args.fixed_model,
         device=args.device,
     )
     forecaster.run_kafka(
         bootstrap=args.bootstrap,
         group_id=args.group,
+        drift_topic=drift_top,
         limit=args.limit,
     )
     return 0

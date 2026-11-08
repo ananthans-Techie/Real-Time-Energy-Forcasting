@@ -12,11 +12,11 @@
   "files": {
     "uci_minute.parquet": {
       "rows": 2075259,
-      "content_sha256": "c918e6e9b06439ef62a1898212af6d15ebce61096fbca8239fc4d2947b7ca179"
+      "content_sha256": "c5c8f66c378474bb5268822f4e40c100157c352f1e50a6cf03f625bc5d6a7162"
     },
     "uci_hourly.parquet": {
       "rows": 34589,
-      "content_sha256": "6e194e999b28de75fd1891d60f80cf904151e8b5e7c30c195451558190a36f77"
+      "content_sha256": "71228939d06b401f1b1b932aefb6cd347d325d83f4516a9a940506b41551c968"
     }
   },
   "splits_hourly": {

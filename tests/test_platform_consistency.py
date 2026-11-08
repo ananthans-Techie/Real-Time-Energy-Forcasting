@@ -1,7 +1,10 @@
 """The frozen schema, the Telegraf mapping, the compose file and the dashboards must agree."""
 import json
 import re
-import tomllib
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 from pathlib import Path
 
 import yaml

@@ -166,6 +166,10 @@ class DynamicModelSelector:
             "hours_since_switch": self.hours_since_switch,
         }
 
+        # If only a single candidate exists (e.g. fixed baseline), no alternative model exists
+        if len(self.candidate_models) <= 1:
+            return active, False, "none", None, snapshot
+
         # -----------------------------------------------------------------
         # Emergency Check 1: External Concept Drift Signal
         # -----------------------------------------------------------------

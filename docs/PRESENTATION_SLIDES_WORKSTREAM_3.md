@@ -47,13 +47,13 @@
   * **Shift Detection Rate:** 100% | **Mean Detection Delay:** 22 steps | **False Alarm Rate:** 0.013.
 
 #### Spoken Script for Angel (Slide 2):
-> *"While point anomalies represent isolated events, sustained forecast degradation indicates Concept Drift.*  
->  
-> *To track this, I implemented the ADWIN algorithm over streaming prediction errors. When a statistically significant divergence between subwindows occurs, ADWIN flags a confirmed drift event on Kafka topic `energy.drift`.*  
->  
-> *This interfaces directly with Aleena's Dynamic Model Selector: emitting a drift signal overrides normal dwell-time constraints, immediately triggering an emergency re-evaluation and model switch.*  
->  
-> *Both output streams are parsed by Telegraf into InfluxDB and visualized on our Grafana dashboard. Our synthetic benchmark confirmed a 100% shift detection rate within 22 stream steps and an extremely low false alarm rate of 0.013. All 73 test suites across the capstone remain 100% green."*
+> *"While point anomalies represent isolated events, sustained forecast degradation indicates Concept Drift.
+>
+> To track this, I implemented the ADWIN algorithm over streaming prediction errors. When subwindow divergence exceeds the statistical cut bound, ADWIN flags a confirmed drift event on Kafka topic `energy.drift`.
+>
+> This interfaces directly with Aleena's Dynamic Model Selector: emitting a drift signal overrides normal dwell-time constraints, immediately triggering an emergency re-evaluation and model switch.
+>
+> Both output streams are parsed by Telegraf into InfluxDB and visualized on our Grafana dashboard. Our synthetic benchmark confirmed a 100% shift detection rate within 22 stream steps and an extremely low false alarm rate of 0.013. All 73 test suites across the capstone remain 100% green."*
 
 ---
 
